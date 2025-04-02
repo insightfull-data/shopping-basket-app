@@ -103,7 +103,7 @@ def generate_basket(row, max_items=10):
 st.title("Synthetic Shopping Basket Generator 🇨🇦")
 st.markdown("Generate realistic Canadian shopping basket data with demographics and geography.")
 
-num_respondents = st.slider("Number of Respondents", 100, 1000, 500, step=50)
+num_respondents = st.slider("Number of Respondents", 100, 2500, 500, step=50)
 
 if st.button("Generate Data"):
     respondents_df = generate_respondents(num_respondents)
