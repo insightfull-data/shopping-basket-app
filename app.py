@@ -60,8 +60,19 @@ def generate_respondents(n):
         })
     return pd.DataFrame(respondents)
 
-# Generate baskets
+# Generate baskets with regional retailer logic
 def generate_basket(row, max_items=10):
+    region_retailer_map = {
+        "Ontario": ["Loblaws", "No Frills", "FreshCo", "Shoppers Drug Mart"],
+        "Quebec": ["Metro", "IGA", "Costco"],
+        "British Columbia": ["Superstore", "Walmart", "Costco"],
+        "Alberta": ["Superstore", "Walmart", "Sobeys"],
+        "Nova Scotia": ["Sobeys", "Superstore"],
+        "Manitoba": ["Superstore", "Walmart"],
+        "Saskatchewan": ["Superstore", "Canadian Tire"],
+        "Newfoundland and Labrador": ["Sobeys", "Walmart"]
+    }
+
     age = row["age"]
     income = row["income_bracket"]
     region = row["region"]
@@ -81,6 +92,8 @@ def generate_basket(row, max_items=10):
 
     basket = []
     selected = random.sample(product_pool, min(num_items, len(product_pool)))
+    retailers = region_retailer_map.get(region, ["Walmart"])
+    retailer = random.choice(retailers)
     transaction_id = fake.uuid4()
     timestamp = fake.date_time_between(start_date="-30d", end_date="now")
 
@@ -91,6 +104,7 @@ def generate_basket(row, max_items=10):
             "transaction_id": transaction_id,
             "timestamp": timestamp,
             "respondent_id": row["respondent_id"],
+            "retailer": retailer,
             "item": item["item"],
             "category": item["category"],
             "unit_price": item["price"],
@@ -101,9 +115,9 @@ def generate_basket(row, max_items=10):
 
 # Streamlit app
 st.title("Synthetic Shopping Basket Generator 🇨🇦")
-st.markdown("Generate realistic Canadian shopping basket data with demographics and geography.")
+st.markdown("Generate realistic Canadian shopping basket data with demographics, region, and retailer logic.")
 
-num_respondents = st.slider("Number of Respondents", 100, 2500, 500, step=50)
+num_respondents = st.slider("Number of Respondents", 100, 2000, 500, step=50)
 
 if st.button("Generate Data"):
     respondents_df = generate_respondents(num_respondents)
