@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 import random
 from faker import Faker
-import io
-from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.dml.color import RGBColor
 
 fake = Faker("en_CA")
 
@@ -63,33 +59,7 @@ def generate_insights(before, after, promo_dict, region):
         insights.append(f"🎯 Loyalty members spent **${diff:.2f}** more on average.")
     return insights
 
-def apply_brand_style(slide, title_text, bullet_points):
-    slide.shapes.title.text = title_text
-    content = slide.placeholders[1]
-    tf = content.text_frame
-    tf.clear()
-    for bullet in bullet_points:
-        p = tf.add_paragraph()
-        p.text = bullet
-        p.level = 0
-        p.font.size = Pt(18)
-        p.font.bold = True
-        p.font.color.rgb = RGBColor(50, 50, 50)
-
-def create_multi_region_ppt(insight_blocks):
-    ppt = Presentation()
-    title = ppt.slides.add_slide(ppt.slide_layouts[0])
-    title.shapes.title.text = "Multi-Market Campaign Report"
-    title.placeholders[1].text = "Regional Performance Breakdown"
-    for block in insight_blocks:
-        slide = ppt.slides.add_slide(ppt.slide_layouts[1])
-        label = block[0].replace("📍", "").strip()
-        apply_brand_style(slide, label, block[1:])
-    output = io.BytesIO()
-    ppt.save(output)
-    return output.getvalue()
-
-st.title("🌐 Multi-Market Campaign Simulator")
+st.title("🌐 Multi-Market Campaign Simulator (No PPT Export)")
 
 num = st.slider("Respondents per Region", 100, 1000, 300)
 selected_regions = st.multiselect("Regions to Simulate", regions, default=regions[:2])
@@ -106,7 +76,6 @@ for region in selected_regions:
 if st.button("Run Regional Campaigns"):
     all_before = []
     all_after = []
-    all_insights = []
 
     for region in selected_regions:
         df_r = generate_respondents(num, region)
@@ -114,15 +83,8 @@ if st.button("Run Regional Campaigns"):
         after = pd.DataFrame([row for _, r in df_r.iterrows() for row in generate_basket(r, region_promos[region])])
         all_before.append(before)
         all_after.append(after)
-        all_insights.append(generate_insights(before, after, region_promos[region], region))
 
-    df_before = pd.concat(all_before)
-    df_after = pd.concat(all_after)
-
-    for insights in all_insights:
+        insights = generate_insights(before, after, region_promos[region], region)
         st.subheader(insights[0])
         for line in insights[1:]:
             st.markdown(line)
-
-    ppt = create_multi_region_ppt(all_insights)
-    st.download_button("📥 Download Multi-Market Report", ppt, file_name="regional_campaign_report.pptx")
