@@ -4,6 +4,10 @@ import random
 from faker import Faker
 from datetime import datetime
 import altair as alt
+from itertools import combinations
+from collections import Counter
+import base64
+import io
 
 fake = Faker("en_CA")
 
@@ -65,7 +69,7 @@ def generate_respondents(n):
         })
     return pd.DataFrame(respondents)
 
-# Generate baskets with retailer and loyalty logic
+# Generate baskets
 def generate_basket(row, max_items=10):
     region_retailer_map = {
         "Ontario": ["Loblaws", "No Frills", "FreshCo", "Shoppers Drug Mart"],
@@ -123,37 +127,28 @@ def generate_basket(row, max_items=10):
     return basket
 
 # Streamlit app
-st.title("🇨🇦 Synthetic Shopping Basket Generator + Dashboard")
-st.markdown("""Generate realistic Canadian shopping basket data and view a dashboard by:
-- Region, Retailer, Income Bracket
-- Loyalty Card Usage
-""")
-
-num_respondents = st.slider("Number of Respondents", 100, 2500, 500, step=50)
+st.title("🇨🇦 Shopping Basket Generator + Full Dashboard")
+num_respondents = st.slider("Number of Respondents", 100, 2000, 500, step=50)
 
 if st.button("Generate Data"):
     respondents_df = generate_respondents(num_respondents)
     basket_data = []
-
     for _, respondent in respondents_df.iterrows():
         basket_data.extend(generate_basket(respondent))
-
     basket_df = pd.DataFrame(basket_data)
     final_df = basket_df.merge(respondents_df, on="respondent_id")
 
     st.success("✅ Data Generated!")
     st.dataframe(final_df.head(20))
 
-    # Dashboard: Spend by Retailer
+    # Charts
     st.subheader("💰 Total Spend by Retailer")
     chart1 = alt.Chart(final_df).mark_bar().encode(
-        x=alt.X("retailer:N", sort='-y'),
-        y="sum(total_price):Q",
+        x=alt.X("retailer:N", sort='-y'), y="sum(total_price):Q",
         tooltip=["retailer", "sum(total_price)"]
     ).properties(width=600)
     st.altair_chart(chart1)
 
-    # Dashboard: Average Basket Size by Region
     st.subheader("🛒 Avg Basket Size by Region")
     basket_sizes = final_df.groupby(["transaction_id", "region"])["quantity"].sum().reset_index()
     region_summary = basket_sizes.groupby("region")["quantity"].mean().reset_index()
@@ -162,8 +157,7 @@ if st.button("Generate Data"):
     ).properties(width=600)
     st.altair_chart(chart2)
 
-    # Loyalty vs Non-Loyalty Spend
-    st.subheader("🎟️ Loyalty Members vs Non-Members - Total Spend")
+    st.subheader("🎟️ Loyalty vs Non-Loyalty Spend")
     loyalty_spend = final_df.groupby("loyalty_member")["total_price"].sum().reset_index()
     loyalty_spend["loyalty_member"] = loyalty_spend["loyalty_member"].map({True: "Loyalty", False: "Non-Loyalty"})
     chart3 = alt.Chart(loyalty_spend).mark_bar().encode(
@@ -171,6 +165,16 @@ if st.button("Generate Data"):
     ).properties(width=400)
     st.altair_chart(chart3)
 
-    # Download button
+    # Basket Associations
+    st.subheader("🔗 Top 10 Basket Item Associations")
+    transactions = final_df.groupby("transaction_id")["item"].apply(list)
+    pairs = Counter()
+    for items in transactions:
+        for combo in combinations(set(items), 2):
+            pairs[tuple(sorted(combo))] += 1
+    pair_df = pd.DataFrame(pairs.items(), columns=["Item Pair", "Count"]).sort_values(by="Count", ascending=False).head(10)
+    st.dataframe(pair_df)
+
+    # Download options
     csv = final_df.to_csv(index=False).encode('utf-8')
     st.download_button("⬇️ Download CSV", csv, "synthetic_baskets.csv", "text/csv")
