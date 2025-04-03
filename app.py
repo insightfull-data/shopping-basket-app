@@ -128,7 +128,7 @@ def generate_basket(row, max_items=10):
 
 # Streamlit app
 st.title("🇨🇦 Shopping Basket Generator + Full Dashboard")
-num_respondents = st.slider("Number of Respondents", 100, 2000, 500, step=50)
+num_respondents = st.slider("Number of Respondents", 100, 2500, 500, step=50)
 
 if st.button("Generate Data"):
     respondents_df = generate_respondents(num_respondents)
