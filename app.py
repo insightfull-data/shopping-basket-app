@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import random
-from faker import Faker
+# from faker import Faker
 
-fake = Faker("en_CA")
+# fake = Faker("en_CA")
 
 products = [
     {"item": "Milk", "price": 3.49}, {"item": "Bread", "price": 2.99},
